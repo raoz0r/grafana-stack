@@ -84,6 +84,7 @@ services:
       - ./promtail-config.yaml:/etc/promtail/config.yml
       - /var/log:/var/log
       - /etc/machine-id:/etc/machine-id
+      - /mnt/storage/logs:/mnt/storage/logs
 
 volumes:
   grafana_postgres_data: {}

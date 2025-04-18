@@ -20,7 +20,7 @@ scrape_configs:
   - job_name: taglog
     static_configs:
       - targets:
-        - localhost
+          - localhost
         labels:
           job: taglog
           __path__: /mnt/storage/logs/taglog.log
