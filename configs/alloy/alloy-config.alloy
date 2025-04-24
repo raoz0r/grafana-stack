@@ -1,0 +1,4 @@
+loki.write:
+  endpoint: http://loki:3100
+  headers:
+    X-Scope-OrgID: ghost

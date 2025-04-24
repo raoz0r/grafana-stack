@@ -1,0 +1,5 @@
+# SSL certs (never commit keys)
+configs/nginx/ssl/
+#Git oAuth Client/Secret
+data/
+.env
