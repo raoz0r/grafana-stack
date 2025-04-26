@@ -1,80 +1,55 @@
-networks:
-  MythOps:
-
 services:
   loki:
-    image: grafana/loki:3.5.0
     container_name: loki
     restart: unless-stopped
+    user: 0:0
+    image: grafana/loki:3.4.0
     ports:
-      - "3100:3100"
+      - 3100:3100/tcp
     volumes:
+      - loki-data:/tmp/loki
       - ./configs/loki/loki-config.yaml:/etc/loki/local-config.yaml
-      - ./data/loki:/loki
     command: -config.file=/etc/loki/local-config.yaml
-    networks:
-      - MythOps
-    # https://github.com/grafana/loki/releases
-  
+
   prometheus:
-    image: prom/prometheus:v2.52.0
     container_name: prometheus
     restart: unless-stopped
+    image: prom/prometheus:v3.2.0
     command:
-    - --web.enable-remote-write-receiver
-    - --config.file=/etc/prometheus/prometheus.yaml
+      - --web.enable-remote-write-receiver
+      - --config.file=/etc/prometheus/prometheus.yaml
     ports:
-    - "9090:9090"
+      - 9090:9090/tcp
     volumes:
-      - ./configs/prometheus/prometheus-config.yaml:/etc/prometheus/prometheus.yaml
-      - ./data/prometheus:/prometheus
-    networks:
-      - MythOps
-    # https://github.com/prometheus/prometheus/releases
+      - prometheus-data:/tmp/prometheus
+      - ./configs/prometheus/prom-config.yaml:/etc/prometheus/prometheus.yaml
 
   grafana:
-    image: grafana/grafana:latest
     container_name: grafana
+    restart: unless-stopped
     environment:
-      - GF_SERVER_ROOT_URL=http://spectre.local/grafana/
-      - GF_AUTH_DISABLE_LOGIN_FORM=true
-      - GF_AUTH_PROXY_ENABLED=true
-      - GF_AUTH_PROXY_HEADER_NAME=X-Auth-Request-Email
-      - GF_AUTH_PROXY_AUTO_SIGN_UP=true
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
-    networks:
-      - MythOps
-
-  oauth2-proxy:
-    image: quay.io/oauth2-proxy/oauth2-proxy:latest
-    container_name: oauth2-proxy
-    command:
-      - --provider=github
-      - --client-id=${GITHUB_CLIENT_ID}
-      - --client-secret=${GITHUB_CLIENT_SECRET}
-      - --cookie-secret=${OAUTH2_COOKIE_SECRET}
-      - --email-domain=*
-      - --upstream=http://grafana:3000
-      - --redirect-url=http://spectre.local/grafana/oauth2/callback
-      - --http-address=0.0.0.0:4180
-      - --cookie-secure=false
-      - --cookie-samesite=lax
-      - --scope=user:email,read:org
-    env_file:
-      - .env
-    networks:
-      - MythOps
-
-  nginx:
-    image: nginx:latest
-    container_name: nginx
+      - GF_AUTH_BASIC_ENABLED=false
+    image: grafana/grafana:latest
     ports:
-      - "80:80"
+      - "3000:3000"
     volumes:
-      - ./configs/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      - grafana
-      - oauth2-proxy
-    networks:
-      - MythOps
+      - ./configs/grafana/provisioning:/etc/grafana/provisioning
+      - grafana-data:/var/lib/grafana
+
+  alloy:
+    container_name: alloy
+    restart: unless-stopped
+    image: grafana/alloy:v1.8.0
+    ports:
+      - 12345:12345
+    volumes:
+      - ./configs/alloy/config.alloy:/etc/alloy/config.alloy
+    command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
+
+volumes:
+  loki-data:
+  prometheus-data:
+  grafana-data:
